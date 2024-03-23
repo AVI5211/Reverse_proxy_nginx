@@ -1,0 +1,55 @@
+version: '3'
+
+services:
+  db:
+    image: mysql
+    volumes:
+      - ./scripts/rockstar.sql:/docker-entrypoint-initdb.d/rockstar.sql
+      - ./db_data:/usr/data
+    command: --default-authentication-plugin=mysql_native_password  
+    restart: always
+    environment:
+          MYSQL_DATABASE: rockstar
+          MYSQL_ROOT_PASSWORD: Rockstar@123R
+    ports:
+            - 3306:3306
+
+  application:
+    build: .
+    volumes: 
+       - ./:/var/www/html/
+    depends_on:
+       - db
+    restart: always 
+    links:
+      - db  
+    ports:
+      - "8081:80"
+      
+  phpmyadmin:
+        image: phpmyadmin
+        container_name: phpmyadmin
+        depends_on:
+           - db
+        links:
+            - db
+        environment:
+            PMA_HOST: db
+        
+        restart: always
+        ports:
+            - 8082:80
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80" 
+    restart: always
+    depends_on:
+           - phpmyadmin
+           - application
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+
+volumes:
+  db_data:
